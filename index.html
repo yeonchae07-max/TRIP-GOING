@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>대한민국 여행 기록 전도</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+        }
+        body {
+            font-family: 'Malgun Gothic', dotum, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            width: 100%;
+            justify-content: center;
+            align-items: flex-start;
+        }
+        /* 지도 영역 */
+        .map-container {
+            flex: 1.2;
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+        /* HTML에 내장된 SVG 스타일 */
+        svg {
+            width: 100%;
+            max-width: 550px;
+            height: auto;
+        }
+        .region {
+            fill: #e6e6e6;
+            stroke: #ffffff;
+            stroke-width: 1.5;
+            cursor: pointer;
+            transition: fill 0.2s, stroke 0.2s;
+        }
+        .region:hover {
+            fill: #b3d4fc !important;
+        }
+        .region.active {
+            stroke: var(--primary-color);
+            stroke-width: 3;
+            z-index: 10;
+        }
+        /* 툴팁 (마우스 오버 지역명) */
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+            pointer-events: none;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        /* 우측 사이드바 */
+        .sidebar {
+            width: 380px;
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 20px;
+        }
+        .hidden { display: none; }
+        h2 { margin-top: 0; color: #333; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px;}
+        .input-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #555; }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            resize: none;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        input[type="file"] { width: 100%; }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        button:hover { background-color: #357abd; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>🗺️ 대한민국 전국 여행 기록 전도</h1>
+    <p>실제 모양의 지도 구획을 클릭하여 사진을 채우고 일기를 남겨보세요.</p>
+</header>
+
+<div class="container">
+    <div class="map-container">
+        <div class="tooltip" id="tooltip">지역명</div>
+        
+        <svg viewBox="0 0 550 700" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                </defs>
+            <path id="seoul" class="region" data-name="서울특별시" d="M192,201 L200,195 L208,197 L211,206 L205,214 L197,214 L190,208 Z" />
+            <path id="incheon" class="region" data-name="인천광역시" d="M172,194 L187,196 L191,202 L185,212 L179,208 L170,214 L165,200 Z" />
+            <path id="gyeonggi" class="region" data-name="경기도" d="M182,154 L212,152 L225,174 L235,178 L238,206 L227,239 L206,243 L191,234 L194,220 L212,213 L214,203 L203,192 L185,192 L180,180 Z" />
+            <path id="gangwon" class="region" data-name="강원도" d="M216,150 L274,136 L308,175 L334,233 L308,266 L262,246 L242,246 L237,208 L227,176 Z" />
+            <path id="chungbuk" class="region" data-name="충청북도" d="M239,248 L263,248 L305,268 L283,311 L268,335 L252,324 L244,295 L229,266 Z" />
+            <path id="chungnam" class="region" data-name="충청남도" d="M187,247 L225,244 L240,270 L249,295 L231,316 L194,324 L175,302 L182,274 Z" />
+            <path id="daejeon" class="region" data-name="대전광역시" d="M233,298 L243,297 L246,307 L237,311 Z" />
+            <path id="sejong" class="region" data-name="세종특별자치시" d="M227,281 L236,281 L235,291 L226,290 Z" />
+            <path id="gyeongbuk" class="region" data-name="경상북도" d="M309,271 L352,284 L360,339 L344,385 L306,396 L291,374 L271,339 L286,312 Z" />
+            <path id="daegu" class="region" data-name="대구광역시" d="M307,366 L321,366 L321,377 L308,377 Z" />
+            <path id="jeonbuk" class="region" data-name="전라북도" d="M192,328 L232,320 L251,327 L268,354 L254,382 L211,385 L189,365 Z" />
+            <path id="gwangju" class="region" data-name="광주광역시" d="M197,419 L208,419 L207,428 L196,427 Z" />
+            <path id="jeonnam" class="region" data-name="전라남도" d="M184,374 L212,388 L252,385 L247,416 L259,444 L236,460 L191,460 L166,432 L171,399 Z" />
+            <path id="gyeongnam" class="region" data-name="경상남도" d="M256,384 L289,378 L303,399 L321,401 L311,444 L272,450 L251,440 L249,414 Z" />
+            <path id="busan" class="region" data-name="부산광역시" d="M319,425 L331,421 L333,431 L321,434 Z" />
+            <path id="ulsan" class="region" data-name="울산광역시" d="M336,392 L347,392 L345,407 L333,406 Z" />
+            <path id="jeju" class="region" data-name="제주특별자치도" d="M180,540 C210,540 230,550 220,570 C200,590 160,580 150,560 C150,545 165,540 180,540 Z" />
+        </svg>
+    </div>
+
+    <div class="sidebar" id="editor-sidebar">
+        <div id="placeholder-text">
+            <h3>지도의 지역을 선택해주세요</h3>
+            <p>전국 17개 시·도 구획 중 하나를 클릭하면 일기장과 사진 마스킹 기능이 활성화됩니다.</p>
+        </div>
+        
+        <div id="editor-form" class="hidden">
+            <h2 id="selected-region-name">지역 이름</h2>
+            
+            <div class="input-group">
+                <label>📷 이 지역 모양에 맞춰 사진 넣기</label>
+                <input type="file" id="image-upload" accept="image/*">
+            </div>
+            
+            <div class="input-group">
+                <label>📝 여행 일기 메모장</label>
+                <textarea id="diary-text" placeholder="이 지역에서 있었던 추억을 기록해 두세요."></textarea>
+            </div>
+            
+            <button id="save-btn">추억 저장하기</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const travelData = {}; // 데이터 저장소
+    const tooltip = document.getElementById('tooltip');
+    
+    const regions = document.querySelectorAll('.region');
+    const sidebarForm = document.getElementById('editor-form');
+    const sidebarPlaceholder = document.getElementById('placeholder-text');
+    const selectedRegionName = document.getElementById('selected-region-name');
+    const diaryText = document.getElementById('diary-text');
+    const imageUpload = document.getElementById('image-upload');
+    const saveBtn = document.getElementById('save-btn');
+    const svgDefs = document.querySelector('defs');
+
+    let currentSelectedRegionId = null;
+
+    // 1. 지도 구획 내부 인터랙션 및 클릭 이벤트 구현
+    regions.forEach(region => {
+        // 마우스 무브 시 툴팁 표시
+        region.addEventListener('mousemove', (e) => {
+            tooltip.style.display = 'block';
+            tooltip.innerText = region.getAttribute('data-name');
+            
+            // 컨테이너 기준 상대 좌표로 안전하게 툴팁 위치 배치
+            const containerRect = e.currentTarget.closest('.map-container').getBoundingClientRect();
+            tooltip.style.left = (e.clientX - containerRect.left + 15) + 'px';
+            tooltip.style.top = (e.clientY - containerRect.top + 15) + 'px';
+        });
+
+        region.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+
+        // 클릭 시 데이터 인식 및 에디터 활성화
+        region.addEventListener('click', () => {
+            regions.forEach(r => r.classList.remove('active'));
+            region.classList.add('active');
+
+            currentSelectedRegionId = region.id;
+            const regionName = region.getAttribute('data-name');
+
+            // UI 보이기 설정
+            sidebarPlaceholder.classList.add('hidden');
+            sidebarForm.classList.remove('hidden');
+            selectedRegionName.innerText = regionName;
+
+            // 기존 메모 데이터 불러오기
+            if (travelData[currentSelectedRegionId]) {
+                diaryText.value = travelData[currentSelectedRegionId].diary || '';
+            } else {
+                diaryText.value = '';
+            }
+            imageUpload.value = ''; // 이미지 파일 초기화
+        });
+    });
+
+    // 2. 저장하기 버튼 클릭 이벤트
+    saveBtn.addEventListener('click', () => {
+        if (!currentSelectedRegionId) return;
+
+        if (!travelData[currentSelectedRegionId]) {
+            travelData[currentSelectedRegionId] = {};
+        }
+
+        // 입력한 일기 텍스트 저장
+        travelData[currentSelectedRegionId].diary = diaryText.value;
+
+        // 선택한 이미지 처리 및 마스킹 패턴 적용
+        const file = imageUpload.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageUrl = e.target.result;
+                travelData[currentSelectedRegionId].image = imageUrl;
+                
+                applyImageToSvgShape(currentSelectedRegionId, imageUrl);
+            }
+            reader.readAsDataURL(file);
+        }
+
+        alert(`${selectedRegionName.innerText}의 추억이 지도에 저장되었습니다!`);
+    });
+
+    // 3. 사용자가 선택한 지역 크기에 정확히 대응하여 이미지를 자르는 크롭 패턴 매핑 함수
+    function applyImageToSvgShape(regionId, imageUrl) {
+        const targetElement = document.getElementById(regionId);
+        const bbox = targetElement.getBBox(); // 해당 행정구역 좌표의 실제 가로세로 바운딩박스 계산
+        
+        let pattern = document.getElementById(`pattern-${regionId}`);
+        
+        if (!pattern) {
+            pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
+            pattern.setAttribute('id', `pattern-${regionId}`);
+            pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+            
+            // 해당 지역의 시작 위치와 크기를 그대로 반영하여 어색하지 않게 정렬
+            pattern.setAttribute('x', bbox.x);
+            pattern.setAttribute('y', bbox.y);
+            pattern.setAttribute('width', bbox.width);
+            pattern.setAttribute('height', bbox.height);
+
+            const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            image.setAttribute('href', imageUrl);
+            image.setAttribute('width', bbox.width);
+            image.setAttribute('height', bbox.height);
+            image.setAttribute('preserveAspectRatio', 'xMidYMid slice'); // 종횡비 유지 채우기
+
+            pattern.appendChild(image);
+            svgDefs.appendChild(pattern);
+        } else {
+            pattern.querySelector('image').setAttribute('href', imageUrl);
+        }
+
+        // 인라인화된 실제 지도 패스 배경에 이미지 url 설정
+        targetElement.style.fill = `url(#pattern-${regionId})`;
+    }
+</script>
+
+</body>
+</html>
