@@ -1,351 +1,216 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>대한민국 시·군 여행 기록 지도</title>
-    <style>
-        :root {
-            --primary-color: #4a90e2;
-            --bg-color: #f5f7fa;
-            --card-bg: #ffffff;
-        }
-        body {
-            font-family: 'Malgun Gothic', dotum, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        header {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            gap: 40px;
-            max-width: 1300px;
-            width: 100%;
-            justify-content: center;
-            align-items: flex-start;
-        }
-        /* 지도 영역 */
-        .map-container {
-            flex: 1.4;
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            position: relative;
-            display: flex;
-            justify-content: center;
-        }
-        svg {
-            width: 100%;
-            max-width: 600px;
-            height: auto;
-            max-height: 800px;
-        }
-        .region {
-            fill: #e6e6e6;
-            stroke: #ffffff;
-            stroke-width: 1.5;
-            cursor: pointer;
-            transition: fill 0.2s, stroke 0.2s;
-        }
-        .region:hover {
-            fill: #b3d4fc !important;
-        }
-        .region.active {
-            stroke: var(--primary-color);
-            stroke-width: 3;
-            z-index: 10;
-        }
-        /* 지도 라벨 텍스트 스타일 */
-        .region-label {
-            font-size: 10px;
-            fill: #555;
-            pointer-events: none;
-            text-anchor: middle;
-            dominant-baseline: middle;
-        }
-        /* 툴팁 */
-        .tooltip {
-            position: absolute;
-            background: rgba(0, 0, 0, 0.85);
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 13px;
-            display: none;
-            pointer-events: none;
-            z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        /* 우측 사이드바 */
-        .sidebar {
-            width: 380px;
-            background: var(--card-bg);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 20px;
-        }
-        .hidden { display: none; }
-        h2 { margin-top: 0; color: #333; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px;}
-        .input-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px; color: #555; }
-        textarea {
-            width: 100%;
-            height: 200px;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            resize: none;
-            font-family: inherit;
-            font-size: 14px;
-        }
-        input[type="file"] { width: 100%; }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        button:hover { background-color: #357abd; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>K-Traveler | 대한민국 여행 기록 & 사진 지도</title>
+  <!-- Google Fonts: Outfit & Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons (CDN) -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- D3.js (CDN) -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <!-- TopoJSON Client (CDN) -->
+  <script src="https://unpkg.com/topojson-client@3"></script>
 </head>
 <body>
-
-<header>
-    <h1>🗺️ 대한민국 전국 시·군 여행 기록 지도</h1>
-    <p>개별 시·군 및 광역도시 구획을 클릭하여 사진을 채우고 여행 일기를 기록해보세요.</p>
-</header>
-
-<div class="container">
-    <div class="map-container">
-        <div class="tooltip" id="tooltip">지역명</div>
-        
-        <svg viewBox="0 0 500 750" xmlns="http://www.w3.org/2000/svg" id="korea-map">
-            <defs>
-                </defs>
-            
-            <rect id="seoul" class="region" data-name="서울특별시" x="140" y="140" width="50" height="40" />
-            <rect id="incheon" class="region" data-name="인천광역시" x="85" y="140" width="50" height="40" />
-            <rect id="suwon" class="region" data-name="경기도 수원시" x="140" y="185" width="50" height="40" />
-            <rect id="goyang" class="region" data-name="경기도 고양시" x="140" y="95" width="50" height="40" />
-            <rect id="seongnam" class="region" data-name="경기도 성남시" x="195" y="185" width="50" height="40" />
-            <rect id="paju" class="region" data-name="경기도 파주시" x="85" y="95" width="50" height="40" />
-            <rect id="yongin" class="region" data-name="경기도 용인시" x="195" y="230" width="50" height="40" />
-            
-            <rect id="chuncheon" class="region" data-name="강원도 춘천시" x="250" y="95" width="50" height="40" />
-            <rect id="wonju" class="region" data-name="강원도 원주시" x="250" y="185" width="50" height="40" />
-            <rect id="gangneung" class="region" data-name="강원도 강릉시" x="360" y="140" width="50" height="40" />
-            <rect id="sokcho" class="region" data-name="강원도 속초시" x="360" y="95" width="50" height="40" />
-            
-            <rect id="cheongju" class="region" data-name="충청북도 청주시" x="195" y="285" width="50" height="40" />
-            <rect id="cheonan" class="region" data-name="충청남도 천안시" x="140" y="285" width="50" height="40" />
-            <rect id="sejong" class="region" data-name="세종특별자치시" x="140" y="330" width="50" height="40" />
-            <rect id="daejeon" class="region" data-name="대전광역시" x="140" y="375" width="50" height="40" />
-            <rect id="chungju" class="region" data-name="충청북도 충주시" x="250" y="240" width="50" height="40" />
-            
-            <rect id="jeonju" class="region" data-name="전라북도 전주시" x="85" y="440" width="50" height="40" />
-            <rect id="gunsan" class="region" data-name="전라북도 군산시" x="30" y="440" width="50" height="40" />
-            <rect id="gwangju" class="region" data-name="광주광역시" x="85" y="510" width="50" height="40" />
-            <rect id="mokpo" class="region" data-name="전라남도 목포시" x="30" y="560" width="50" height="40" />
-            <rect id="yeosu" class="region" data-name="전라남도 여수시" x="140" y="560" width="50" height="40" />
-            <rect id="suncheon" class="region" data-name="전라남도 순천시" x="140" y="510" width="50" height="40" />
-
-            <rect id="daegu" class="region" data-name="대구광역시" x="305" y="390" width="50" height="40" />
-            <rect id="pohang" class="region" data-name="경상북도 포항시" x="360" y="340" width="50" height="40" />
-            <rect id="gyeongju" class="region" data-name="경상북도 경주시" x="360" y="390" width="50" height="40" />
-            <rect id="busan" class="region" data-name="부산광역시" x="360" y="480" width="50" height="40" />
-            <rect id="ulsan" class="region" data-name="울산광역시" x="360" y="435" width="50" height="40" />
-            <rect id="changwon" class="region" data-name="경상남도 창원시" x="305" y="480" width="50" height="40" />
-            <rect id="jinju" class="region" data-name="경상남도 진주시" x="250" y="480" width="50" height="40" />
-            <rect id="andong" class="region" data-name="경상북도 안동시" x="305" y="285" width="50" height="40" />
-
-            <rect id="jeju" class="region" data-name="제주특별자치도" x="195" y="660" width="80" height="45" />
-
-            <text class="region-label" x="165" y="160">서울</text>
-            <text class="region-label" x="110" y="160">인천</text>
-            <text class="region-label" x="165" y="205">수원</text>
-            <text class="region-label" x="165" y="115">고양</text>
-            <text class="region-label" x="220" y="205">성남</text>
-            <text class="region-label" x="110" y="115">파주</text>
-            <text class="region-label" x="220" y="250">용인</text>
-            <text class="region-label" x="275" y="115">춘천</text>
-            <text class="region-label" x="275" y="205">원주</text>
-            <text class="region-label" x="385" y="160">강릉</text>
-            <text class="region-label" x="385" y="115">속초</text>
-            <text class="region-label" x="220" y="305">청주</text>
-            <text class="region-label" x="165" y="305">천안</text>
-            <text class="region-label" x="165" y="350">세종</text>
-            <text class="region-label" x="165" y="395">대전</text>
-            <text class="region-label" x="275" y="260">충주</text>
-            <text class="region-label" x="110" y="460">전주</text>
-            <text class="region-label" x="55" y="460">군산</text>
-            <text class="region-label" x="110" y="530">광주</text>
-            <text class="region-label" x="55" y="580">목포</text>
-            <text class="region-label" x="165" y="580">여수</text>
-            <text class="region-label" x="165" y="530">순천</text>
-            <text class="region-label" x="330" y="410">대구</text>
-            <text class="region-label" x="385" y="360">포항</text>
-            <text class="region-label" x="385" y="410">경주</text>
-            <text class="region-label" x="385" y="500">부산</text>
-            <text class="region-label" x="385" y="455">울산</text>
-            <text class="region-label" x="330" y="500">창원</text>
-            <text class="region-label" x="275" y="500">진주</text>
-            <text class="region-label" x="330" y="305">안동</text>
-            <text class="region-label" x="235" y="682">제주도</text>
-        </svg>
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay" class="loading-overlay">
+    <div class="spinner-container">
+      <div class="double-bounce1"></div>
+      <div class="double-bounce2"></div>
     </div>
-
-    <div class="sidebar" id="editor-sidebar">
-        <div id="placeholder-text">
-            <h3>원하는 시·군 지역을 선택해주세요</h3>
-            <p>광주광역시를 비롯하여 전국 세부 시·군 구획을 클릭하면 해당하는 개별 메모장과 전용 사진 마스킹 툴이 열립니다.</p>
-        </div>
-        
-        <div id="editor-form" class="hidden">
-            <h2 id="selected-region-name">지역 이름</h2>
-            
-            <div class="input-group">
-                <label>📷 이 시·군 구획에 사진 넣기</label>
-                <input type="file" id="image-upload" accept="image/*">
-            </div>
-            
-            <div class="input-group">
-                <label>📝 시·군별 전용 여행 메모장</label>
-                <textarea id="diary-text" placeholder="이 지역만의 특별한 맛집이나 추억을 개별적으로 기록해두세요."></textarea>
-            </div>
-            
-            <button id="save-btn">시·군 기록 저장</button>
-        </div>
+    <h2>지도 데이터를 불러오는 중입니다...</h2>
+    <p>잠시만 기다려주세요 (약 18MB의 시군구 경계 데이터를 로드 중입니다)</p>
+    <div class="progress-bar-container mini">
+      <div class="progress-bar-fill" id="loading-progress" style="width: 0%"></div>
     </div>
-</div>
-
-<script>
-    const travelData = {}; 
-    const tooltip = document.getElementById('tooltip');
-    
-    const regions = document.querySelectorAll('.region');
-    const sidebarForm = document.getElementById('editor-form');
-    const sidebarPlaceholder = document.getElementById('placeholder-text');
-    const selectedRegionName = document.getElementById('selected-region-name');
-    const diaryText = document.getElementById('diary-text');
-    const imageUpload = document.getElementById('image-upload');
-    const saveBtn = document.getElementById('save-btn');
-    const svgDefs = document.querySelector('defs');
-
-    let currentSelectedRegionId = null;
-
-    // 1. 전국 시·군 개별 클릭 및 마우스 무브 이벤트 연동
-    regions.forEach(region => {
-        region.addEventListener('mousemove', (e) => {
-            tooltip.style.display = 'block';
-            tooltip.innerText = region.getAttribute('data-name');
-            
-            const containerRect = e.currentTarget.closest('.map-container').getBoundingClientRect();
-            tooltip.style.left = (e.clientX - containerRect.left + 15) + 'px';
-            tooltip.style.top = (e.clientY - containerRect.top + 15) + 'px';
-        });
-
-        region.addEventListener('mouseleave', () => {
-            tooltip.style.display = 'none';
-        });
-
-        region.addEventListener('click', () => {
-            regions.forEach(r => r.classList.remove('active'));
-            region.classList.add('active');
-
-            currentSelectedRegionId = region.id;
-            const regionName = region.getAttribute('data-name');
-
-            sidebarPlaceholder.classList.add('hidden');
-            sidebarForm.classList.remove('hidden');
-            selectedRegionName.innerText = regionName;
-
-            // 각 시·군 고유 아이디별로 저장된 개별 데이터 분리 로드
-            if (travelData[currentSelectedRegionId]) {
-                diaryText.value = travelData[currentSelectedRegionId].diary || '';
-            } else {
-                diaryText.value = '';
-            }
-            imageUpload.value = ''; 
-        });
-    });
-
-    // 2. 저장 데이터 개별 바인딩
-    saveBtn.addEventListener('click', () => {
-        if (!currentSelectedRegionId) return;
-
-        if (!travelData[currentSelectedRegionId]) {
-            travelData[currentSelectedRegionId] = {};
-        }
-
-        travelData[currentSelectedRegionId].diary = diaryText.value;
-
-        const file = imageUpload.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imageUrl = e.target.result;
-                travelData[currentSelectedRegionId].image = imageUrl;
-                
-                applyImageToSpecificCity(currentSelectedRegionId, imageUrl);
-            }
-            reader.readAsDataURL(file);
-        }
-
-        alert(`${selectedRegionName.innerText}의 개별 기록이 정상 저장되었습니다.`);
-    });
-
-    // 3. 사진을 선택한 특정 시·군 구획 상자 안에 맞춰 크롭 마스킹하는 함수
-    function applyImageToSpecificCity(regionId, imageUrl) {
-        const targetElement = document.getElementById(regionId);
-        // 사각형 구획 정보 추출
-        const x = targetElement.getAttribute('x');
-        const y = targetElement.getAttribute('y');
-        const width = targetElement.getAttribute('width');
-        const height = targetElement.getAttribute('height');
+  </div>
+  <div class="app-container">
+    <!-- 상단 헤더 (글라스모피즘) -->
+    <header class="app-header">
+      <div class="header-logo">
+        <i data-lucide="map-pin" class="logo-icon"></i>
+        <h1>K-Traveler</h1>
+      </div>
+      <div class="header-stats">
+        <div class="stats-text">
+          <span class="label">전국 방문 달성률</span>
+          <span class="value" id="stats-percentage">0.0%</span>
+          <span class="count" id="stats-count">(0 / 250)</span>
+        </div>
+        <div class="stats-progress-bar">
+          <div class="progress-bar-fill" id="stats-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+    </header>
+    <!-- 메인 레이아웃 -->
+    <main class="main-content">
+      <!-- 지도 영역 -->
+      <section class="map-section">
+        <div class="map-controls">
+          <button id="btn-zoom-in" title="확대"><i data-lucide="zoom-in"></i></button>
+          <button id="btn-zoom-out" title="축소"><i data-lucide="zoom-out"></i></button>
+          <button id="btn-zoom-reset" title="초기화"><i data-lucide="rotate-ccw"></i></button>
+        </div>
+        <div id="map-canvas" class="map-canvas">
+          <!-- D3 SVG가 여기에 동적으로 생성됩니다 -->
+        </div>
+        <div class="map-helper">
+          <i data-lucide="info"></i>
+          <span>마우스 휠로 확대/축소, 드래그로 이동이 가능합니다. 시/군 지역을 클릭하여 일기를 기록해 보세요.</span>
+        </div>
+      </section>
+      <!-- 사이드바 영역 -->
+      <aside class="sidebar">
+        <!-- 기본 안내 뷰 -->
+        <div id="sidebar-default-view" class="sidebar-view active">
+          <div class="welcome-box">
+            <i data-lucide="compass" class="welcome-icon"></i>
+            <h2>나만의 대한민국 여행 지도</h2>
+            <p>다녀온 지역을 클릭하여 그곳에서 촬영한 사진으로 지도를 채우고, 소중한 추억을 일기로 기록해 보세요.</p>
+          </div>
+          
+          <div class="quick-stats-card">
+            <h3>최근 다녀온 여행지</h3>
+            <ul id="recent-trips-list" class="recent-trips-list">
+              <!-- 최근 일기가 작성된 지역 목록이 동적으로 들어갑니다 -->
+              <li class="empty-list">아직 등록된 여행지가 없습니다.</li>
+            </ul>
+          </div>
+          <div class="regions-list-card">
+            <div class="card-header">
+              <h3>전체 지역 목록</h3>
+              <div class="search-box">
+                <i data-lucide="search"></i>
+                <input type="text" id="region-search" placeholder="시/군 이름 검색...">
+              </div>
+            </div>
+            <ul id="all-regions-list" class="all-regions-list">
+              <!-- 전체 시군 리스트가 동적으로 렌더링됩니다 -->
+            </ul>
+          </div>
+        </div>
+        <!-- 특정 지역 선택 뷰 -->
+        <div id="sidebar-detail-view" class="sidebar-view">
+          <button id="btn-back-to-default" class="btn-back">
+            <i data-lucide="arrow-left"></i> 돌아가기
+          </button>
+          <div class="region-hero">
+            <div class="region-hero-overlay"></div>
+            <h2 id="selected-region-name">강릉시</h2>
+            <p id="selected-region-province">강원도</p>
+          </div>
+          <div class="region-actions">
+            <button id="btn-open-diary-modal" class="btn-primary">
+              <i data-lucide="pen-tool"></i> 일기 작성/편집
+            </button>
+            <button id="btn-adjust-photo" class="btn-secondary" style="display: none;">
+              <i data-lucide="move"></i> 사진 구도 조정
+            </button>
+          </div>
+          <div class="region-photo-preview-card" id="region-photo-preview-card" style="display: none;">
+            <h3>대표 사진</h3>
+            <div class="clipped-preview-container">
+              <div class="clipped-preview-wrapper" id="clipped-preview-wrapper">
+                <!-- SVG 클립 형상이 렌더링되거나 간이 이미지 뷰가 노출됩니다 -->
+              </div>
+            </div>
+          </div>
+          <div class="region-diaries-section">
+            <h3>작성된 일기 피드</h3>
+            <div id="diaries-feed" class="diaries-feed">
+              <!-- 일기 피드가 타임라인 형태로 들어갑니다 -->
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+  <!-- 일기 작성/편집 모달 -->
+  <div id="diary-modal" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h2 id="diary-modal-title">일기 작성 - 강릉시</h2>
+        <button class="btn-close-modal" id="btn-close-diary-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <form id="diary-form">
+          <div class="form-group">
+            <label for="travel-date"><i data-lucide="calendar"></i> 방문 날짜</label>
+            <input type="date" id="travel-date" required>
+          </div>
+          <div class="form-group">
+            <label><i data-lucide="image"></i> 대표 사진 업로드 (지도 배경용)</label>
+            <div class="image-upload-wrapper">
+              <label for="map-photo" class="upload-area" id="map-photo-label">
+                <i data-lucide="cloud-upload" class="upload-icon"></i>
+                <span>클릭하여 대표 사진 선택</span>
+                <span class="file-info" id="map-photo-info">선택된 파일 없음</span>
+              </label>
+              <input type="file" id="map-photo" accept="image/*" style="display: none;">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="diary-content"><i data-lucide="file-text"></i> 일기 내용</label>
+            <textarea id="diary-content" rows="6" placeholder="이곳에서 겪은 소중한 추억을 적어주세요..." required></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn-cancel" id="btn-cancel-diary">취소</button>
+            <button type="submit" class="btn-submit" id="btn-save-diary">저장하기</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- 사진 구도 조정 모달 -->
+  <div id="photo-adjust-modal" class="modal">
+    <div class="modal-content glass">
+      <div class="modal-header">
+        <h2>지도 사진 구도 조정 - <span id="adjust-region-name">강릉시</span></h2>
+        <button class="btn-close-modal" id="btn-close-adjust-modal"><i data-lucide="x"></i></button>
+      </div>
+      <div class="modal-body">
+        <p class="adjust-desc">슬라이더를 조절하거나 지도 안의 이미지를 클릭하여 보기 좋게 맞춰보세요.</p>
         
-        let pattern = document.getElementById(`pattern-${regionId}`);
-        
-        if (!pattern) {
-            pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-            pattern.setAttribute('id', `pattern-${regionId}`);
-            pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-            
-            pattern.setAttribute('x', x);
-            pattern.setAttribute('y', y);
-            pattern.setAttribute('width', width);
-            pattern.setAttribute('height', height);
-
-            const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            image.setAttribute('href', imageUrl);
-            image.setAttribute('width', width);
-            image.setAttribute('height', height);
-            image.setAttribute('preserveAspectRatio', 'xMidYMid slice'); 
-
-            pattern.appendChild(image);
-            svgDefs.appendChild(pattern);
-        } else {
-            pattern.querySelector('image').setAttribute('href', imageUrl);
-        }
-
-        targetElement.style.fill = `url(#pattern-${regionId})`;
-    }
-</script>
-
+        <div class="adjust-preview-area">
+          <!-- 실제 클리핑된 SVG가 여기에 일부 크게 렌더링되어 실시간 조정을 확인하게 함 -->
+          <div id="adjust-svg-container" class="adjust-svg-container"></div>
+        </div>
+        <div class="adjust-controls">
+          <div class="control-group">
+            <label for="slider-scale"><i data-lucide="maximize-2"></i> 크기 조절 (Scale)</label>
+            <div class="slider-wrapper">
+              <input type="range" id="slider-scale" min="0.1" max="5.0" step="0.05" value="1.0">
+              <span id="val-scale">1.0x</span>
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="slider-x"><i data-lucide="move-horizontal"></i> 좌우 이동 (X Offset)</label>
+            <div class="slider-wrapper">
+              <input type="range" id="slider-x" min="-300" max="300" step="1" value="0">
+              <span id="val-x">0px</span>
+            </div>
+          </div>
+          <div class="control-group">
+            <label for="slider-y"><i data-lucide="move-vertical"></i> 상하 이동 (Y Offset)</label>
+            <div class="slider-wrapper">
+              <input type="range" id="slider-y" min="-300" max="300" step="1" value="0">
+              <span id="val-y">0px</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn-submit" id="btn-save-adjust">적용 완료</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 툴팁 엘리먼트 -->
+  <div id="map-tooltip" class="map-tooltip"></div>
+  <!-- Vite 메인 스크립트 연동 -->
+  <script type="module" src="./src/main.js"></script>
 </body>
 </html>
